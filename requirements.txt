@@ -1,6 +1,5 @@
 Flask==3.0.3
+numpy
+Pillow
 tflite-runtime==2.14.0
 tensorflow==2.19.0
-numpy==1.26.4
-pandas==2.2.2
-Pillow==10.3.0
