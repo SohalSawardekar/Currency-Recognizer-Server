@@ -1,22 +1,23 @@
-import tensorflow as tf
-from tensorflow.keras.models import load_model
 import numpy as np
 from PIL import Image
 import os
 import json
+import tensorflow as tf
 
-# Load class labels once
+INPUT_DATA_PATH = 'uploads'
+TFLITE_MODEL_PATH = 'models/currency_model.tflite'
+
+# Load class names
 with open("class_names.json", "r") as f:
     class_names = json.load(f)
 
-MODEL_PATH = 'models/currency_model.keras'
-INPUT_DATA_PATH = 'uploads'
+# Load TFLite model
+interpreter = tf.lite.Interpreter(model_path=TFLITE_MODEL_PATH)
+interpreter.allocate_tensors()
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
 
-def load_and_predict() -> dict:
-    # Load the pre-trained model
-    model = load_model(MODEL_PATH)
-
-    # Get the first file from the uploads directory
+def load_and_predict():
     uploaded_files = os.listdir(INPUT_DATA_PATH)
     if not uploaded_files:
         return {"status": "error", "message": "No input image found."}
@@ -25,31 +26,28 @@ def load_and_predict() -> dict:
     image_path = os.path.join(INPUT_DATA_PATH, image_file)
 
     try:
-        # Load and preprocess the image
+        # Preprocess
         img = Image.open(image_path).convert("RGB")
         img = img.resize((256, 256))
-        input_data = np.array(img) / 255.0
-        input_data = input_data.reshape(1, 256, 256, 3)
+        input_data = np.expand_dims(np.array(img, dtype=np.float32) / 255.0, axis=0)
 
-        # Make prediction
-        prediction = model.predict(input_data)
-        predicted_index = int(np.argmax(prediction))
+        # Run inference
+        interpreter.set_tensor(input_details[0]['index'], input_data)
+        interpreter.invoke()
+        output_data = interpreter.get_tensor(output_details[0]['index'])
+
+        predicted_index = int(np.argmax(output_data))
         predicted_label = class_names[predicted_index]
-        confidence = float(np.max(prediction)) * 100  # As percentage
+        confidence = float(np.max(output_data)) * 100
 
-        # Clean up: remove uploaded file
         os.remove(image_path)
 
         return {
             "status": "success",
             "prediction": predicted_label,
             "confidence": f"{confidence:.2f}%",
-            "probabilities": prediction[0].tolist()
+            "probabilities": output_data[0].tolist()
         }
-
 
     except Exception as e:
-        return {
-            "status": "error",
-            "message": str(e)
-        }
+        return {"status": "error", "message": str(e)}
