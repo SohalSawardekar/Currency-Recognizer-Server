@@ -1,42 +1,43 @@
 import numpy as np
-from PIL import Image
-import tensorflow.lite as tflite
+import tensorflow as tf
 import json
 
-# Load class names once
+# Load class names
 with open("class_names.json", "r") as f:
     class_names = json.load(f)
 
-MODEL_PATH = 'models/currency_model.tflite'
-
-# Load the TFLite model and allocate tensors.
-interpreter = tflite.Interpreter(model_path=MODEL_PATH)
-interpreter.allocate_tensors()
-
-input_details = interpreter.get_input_details()
-output_details = interpreter.get_output_details()
+MODEL_PATH = "models/currency_model.keras"
+IMAGE_SIZE = 224
 
 def load_and_predict(image_path: str) -> dict:
     try:
-        img = Image.open(image_path).convert("RGB")
-        img = img.resize((256, 256))
-        input_data = np.array(img, dtype=np.float32) / 255.0
-        input_data = np.expand_dims(input_data, axis=0)
+        # Load and preprocess the image - EXACTLY like raw model
+        image = tf.keras.utils.load_img(
+            image_path,
+            target_size=(IMAGE_SIZE, IMAGE_SIZE)
+        )
+        
+        image_arr = tf.keras.utils.img_to_array(image)
+        image_bat = tf.expand_dims(image_arr, axis=0)
+        
+        # Load the model
+        model = tf.keras.models.load_model(MODEL_PATH)
 
-        interpreter.set_tensor(input_details[0]['index'], input_data)
-        interpreter.invoke()
-
-        output_data = interpreter.get_tensor(output_details[0]['index'])
-        predicted_index = int(np.argmax(output_data))
-        predicted_label = class_names[predicted_index]
-        confidence = float(np.max(output_data)) * 100
-
+        # Predict
+        prediction = model.predict(image_bat)
+        
+        # FIXED: Apply softmax to entire prediction array (like raw model)
+        score = tf.nn.softmax(prediction)  
+        
+        predicted_label = class_names[np.argmax(score)]
+        confidence = float(100 * np.max(score))
+        
         return {
             "status": "success",
             "prediction": predicted_label,
-            "confidence": f"{confidence:.2f}%",
-            "probabilities": output_data[0].tolist()
+            "confidence": confidence,
         }
 
     except Exception as e:
+        print(f"[ERROR] Exception occurred: {str(e)}")
         return {"status": "error", "message": str(e)}

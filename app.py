@@ -41,7 +41,6 @@ def predict_output():
             "message": "Prediction successful.",
             "prediction": result['prediction'],
             "confidence": result['confidence'],
-            "probabilities": result['probabilities'],
             "status": "success"
         }), 200
 
