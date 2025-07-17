@@ -1,0 +1,23 @@
+{
+  "name": "coin_recogniser",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/SohalSawardekar/Currency-Recognizer-Server#readme",
+  "bugs": {
+    "url": "https://github.com/SohalSawardekar/Currency-Recognizer-Server/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SohalSawardekar/Currency-Recognizer-Server.git"
+  },
+  "license": "ISC",
+  "author": "Sohal Sawardekar",
+  "main": "app.py",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "python app.py"
+  }
+}
